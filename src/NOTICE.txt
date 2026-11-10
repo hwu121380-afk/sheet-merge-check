@@ -1,0 +1,3 @@
+The merge-and-row-count check in MergeCheck.gs is adapted from
+csv-merge-check (https://github.com/hwu121380-afk/csv-merge-check),
+which is also released under the MIT License.

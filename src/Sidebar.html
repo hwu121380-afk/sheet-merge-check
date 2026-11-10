@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sheet Merge Check</title>
+  <style>
+    :root {
+      --bg: #f7f8fa;
+      --card: #ffffff;
+      --ink: #1a2332;
+      --muted: #5c6b7f;
+      --line: #d8dee8;
+      --accent: #1f4e8c;
+      --accent-hover: #163a69;
+      --ok: #1b7a4a;
+      --ok-bg: #e8f6ee;
+      --warn: #9a6700;
+      --warn-bg: #fff6dd;
+      --bad: #b42318;
+      --bad-bg: #fdecea;
+      --sample: #6b3fa0;
+      --sample-bg: #f4edfb;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 13px/1.45 "Google Sans", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    body { padding: 12px 12px 20px; }
+    h1 {
+      font-size: 16px;
+      font-weight: 650;
+      margin: 0 0 4px;
+    }
+    .lede { color: var(--muted); margin: 0 0 12px; font-size: 12px; }
+    .banner {
+      border-radius: 8px;
+      padding: 8px 10px;
+      margin: 0 0 12px;
+      font-size: 11.5px;
+    }
+    .banner.sample { background: var(--sample-bg); color: var(--sample); }
+    .banner.warn { background: var(--warn-bg); color: var(--warn); }
+    .banner.ok { background: var(--ok-bg); color: var(--ok); }
+    .banner.bad { background: var(--bad-bg); color: var(--bad); }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      margin: 0 0 10px;
+    }
+    .card h2 {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      margin: 0 0 8px;
+    }
+    label.row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      margin: 0 0 6px;
+      cursor: pointer;
+    }
+    label.row span { flex: 1; }
+    .hint { color: var(--muted); font-size: 11px; display: block; }
+    select, input[type="text"] {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      font: inherit;
+      background: #fff;
+    }
+    .field { margin: 0 0 8px; }
+    .field label { display: block; margin: 0 0 4px; font-weight: 600; }
+    button {
+      width: 100%;
+      border: 0;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font: inherit;
+      font-weight: 650;
+      cursor: pointer;
+      margin: 0 0 6px;
+    }
+    button.primary { background: var(--accent); color: #fff; }
+    button.primary:hover { background: var(--accent-hover); }
+    button.secondary { background: #eef2f7; color: var(--ink); }
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    th, td {
+      text-align: left;
+      padding: 4px 0;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+    th:last-child, td:last-child { text-align: right; }
+    .status {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 11px;
+    }
+    .status.ok { background: var(--ok-bg); color: var(--ok); }
+    .status.bad { background: var(--bad-bg); color: var(--bad); }
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #f3f5f8;
+      border-radius: 6px;
+      padding: 8px;
+      font: 11px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      margin: 8px 0 0;
+      max-height: 180px;
+      overflow: auto;
+    }
+    ul.compact { margin: 0; padding-left: 16px; }
+    ul.compact li { margin: 0 0 4px; }
+    .hidden { display: none !important; }
+    .error { color: var(--bad); font-size: 12px; margin: 0 0 8px; }
+  </style>
+</head>
+<body>
+  <h1>Sheet Merge Check</h1>
+  <p class="lede">Merge selected tabs and verify row counts, headers, duplicates, and blank keys.</p>
+
+  <div id="sampleBanner" class="banner sample hidden">
+    Showing <strong>SAMPLE – FICTIONAL DATA</strong>. These are not real shop or customer records.
+  </div>
+  <div id="limitBanner" class="banner warn hidden"></div>
+
+  <div class="card">
+    <h2>Source sheets</h2>
+    <div id="sheetList">Loading…</div>
+  </div>
+
+  <div class="card">
+    <h2>Options</h2>
+    <div class="field">
+      <label for="keyColumn">Key column (optional)</label>
+      <select id="keyColumn">
+        <option value="">— none —</option>
+      </select>
+      <span class="hint">Used only to flag blank and duplicate key values. Columns are not renamed.</span>
+    </div>
+    <label class="row">
+      <input type="checkbox" id="addSourceColumn" checked />
+      <span>Add a source-sheet column</span>
+    </label>
+  </div>
+
+  <button class="primary" id="runBtn" type="button">Run check</button>
+  <button class="secondary" id="writeBtn" type="button" disabled>Write Merged + Check sheets</button>
+  <div id="runError" class="error hidden"></div>
+
+  <div id="results" class="card hidden">
+    <h2>Check report</h2>
+    <p>
+      Row-count:
+      <span id="statusPill" class="status">—</span>
+      <span id="totals"></span>
+    </p>
+    <table>
+      <thead>
+        <tr><th>Source</th><th>Rows in</th></tr>
+      </thead>
+      <tbody id="fileRows"></tbody>
+    </table>
+    <ul class="compact" id="flags"></ul>
+    <pre id="summary"></pre>
+  </div>
+
+  <div class="card">
+    <h2>License (prototype stub)</h2>
+    <p class="hint" id="licenseNote">Free tier: 3 source tabs or 1,000 data rows. No real payment in this prototype.</p>
+    <div class="field">
+      <label for="licenseKey">License key</label>
+      <input type="text" id="licenseKey" autocomplete="off" placeholder="Paste a key (sample stub only)" />
+    </div>
+    <button class="secondary" id="saveKeyBtn" type="button">Save key</button>
+  </div>
+
+  <script>
+    var lastResult = null;
+    var MOCK = typeof window.SIDEBAR_MOCK !== 'undefined' ? window.SIDEBAR_MOCK : null;
+
+    function $(id) { return document.getElementById(id); }
+
+    function setHidden(el, hidden) {
+      if (hidden) el.classList.add('hidden');
+      else el.classList.remove('hidden');
+    }
+
+    function showError(message) {
+      var box = $('runError');
+      if (!message) {
+        setHidden(box, true);
+        box.textContent = '';
+        return;
+      }
+      box.textContent = message;
+      setHidden(box, false);
+    }
+
+    function uniqueHeaders(sheets, selectedNames) {
+      var seen = {};
+      var out = [];
+      (sheets || []).forEach(function (s) {
+        if (selectedNames && selectedNames.indexOf(s.name) === -1) return;
+        (s.headers || []).forEach(function (h) {
+          if (!seen[h]) { seen[h] = true; out.push(h); }
+        });
+      });
+      return out;
+    }
+
+    function selectedSheetNames() {
+      var boxes = document.querySelectorAll('#sheetList input[type="checkbox"]');
+      var names = [];
+      boxes.forEach(function (box) {
+        if (box.checked) names.push(box.value);
+      });
+      return names;
+    }
+
+    function fillKeyOptions(headers, selected) {
+      var sel = $('keyColumn');
+      var current = selected || sel.value;
+      sel.innerHTML = '<option value="">— none —</option>';
+      headers.forEach(function (h) {
+        var opt = document.createElement('option');
+        opt.value = h;
+        opt.textContent = h;
+        if (h === current) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    }
+
+    function renderSheets(sheets) {
+      var host = $('sheetList');
+      host.innerHTML = '';
+      if (!sheets || !sheets.length) {
+        host.textContent = 'No source sheets found.';
+        return;
+      }
+      sheets.forEach(function (s, i) {
+        var label = document.createElement('label');
+        label.className = 'row';
+        var box = document.createElement('input');
+        box.type = 'checkbox';
+        box.value = s.name;
+        box.checked = i < 4;
+        box.addEventListener('change', function () {
+          fillKeyOptions(uniqueHeaders(sheets, selectedSheetNames()), $('keyColumn').value);
+        });
+        var span = document.createElement('span');
+        span.innerHTML = s.name + '<span class="hint">' +
+          (s.headers && s.headers.length ? s.headers.join(', ') : 'No header') +
+          '</span>';
+        label.appendChild(box);
+        label.appendChild(span);
+        host.appendChild(label);
+      });
+      fillKeyOptions(uniqueHeaders(sheets, selectedSheetNames()), 'order_id');
+    }
+
+    function renderLicense(license, limitsMeta) {
+      var note = $('licenseNote');
+      if (license && license.isPro) {
+        note.textContent = license.note || 'Pro unlock is active (prototype stub).';
+      } else {
+        var maxS = (limitsMeta && limitsMeta.freeMaxSources) || 3;
+        var maxR = (limitsMeta && limitsMeta.freeMaxRows) || 1000;
+        note.textContent = (license && license.note ? license.note + ' ' : '') +
+          'Free tier: up to ' + maxS + ' source tabs and ' + maxR + ' data rows.';
+      }
+    }
+
+    function renderResults(result, options) {
+      lastResult = result;
+      options = options || {};
+      setHidden($('results'), false);
+      var ok = !!result.ok;
+      var pill = $('statusPill');
+      pill.textContent = ok ? 'OK' : 'MISMATCH';
+      pill.className = 'status ' + (ok ? 'ok' : 'bad');
+      $('totals').textContent = ' ' + result.rowsIn + ' in = ' + result.rowsOut + ' out';
+
+      var body = $('fileRows');
+      body.innerHTML = '';
+      (result.files || []).forEach(function (f) {
+        var tr = document.createElement('tr');
+        tr.innerHTML = '<td>' + f.name + '</td><td>' + f.rowsIn + '</td>';
+        body.appendChild(tr);
+      });
+
+      var flags = $('flags');
+      flags.innerHTML = '';
+      function addFlag(text) {
+        var li = document.createElement('li');
+        li.textContent = text;
+        flags.appendChild(li);
+      }
+      addFlag('Exact duplicate rows: ' + result.exactDuplicates + ' (kept; not removed)');
+      if (result.headerMismatches && result.headerMismatches.length) {
+        addFlag('Header mismatches: ' + result.headerMismatches.length + ' source(s)');
+      } else {
+        addFlag('Header mismatches: none');
+      }
+      if (result.similarHeaders && result.similarHeaders.length) {
+        result.similarHeaders.forEach(function (s) {
+          addFlag('Similar headers (not merged): ' + s.variants.join(' | '));
+        });
+      }
+      if (result.keyColumn) {
+        addFlag('Blank "' + result.keyColumn + '" fields: ' + result.blankKeyCount);
+        addFlag('Duplicate "' + result.keyColumn + '" values: ' + (result.duplicateKeys ? result.duplicateKeys.length : 0));
+      }
+      $('summary').textContent = result.summary || '';
+
+      var limitBox = $('limitBanner');
+      if (result.limits && !result.limits.allowed) {
+        limitBox.textContent = 'Write is blocked on the free tier. ' + (result.limits.reasons || []).join(' ');
+        setHidden(limitBox, false);
+        $('writeBtn').disabled = true;
+      } else {
+        setHidden(limitBox, true);
+        $('writeBtn').disabled = options.disableWrite || false;
+      }
+    }
+
+    function runCheck(writeSheets) {
+      showError('');
+      var payload = {
+        sheetNames: selectedSheetNames(),
+        keyColumn: $('keyColumn').value,
+        addSourceColumn: $('addSourceColumn').checked,
+        writeSheets: !!writeSheets
+      };
+      if (!payload.sheetNames.length) {
+        showError('Select at least one source sheet.');
+        return;
+      }
+      $('runBtn').disabled = true;
+      $('writeBtn').disabled = true;
+
+      if (MOCK) {
+        // Used only for the local PNG mockup / local preview. Not a live Sheets call.
+        renderResults(MOCK.result, { disableWrite: true });
+        $('runBtn').disabled = false;
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(function (result) {
+          $('runBtn').disabled = false;
+          renderResults(result);
+          if (result.written && result.written.merged) {
+            $('limitBanner').textContent = 'Wrote the Merged and Check report tabs in this spreadsheet.';
+            $('limitBanner').className = 'banner ok';
+            setHidden($('limitBanner'), false);
+          }
+        })
+        .withFailureHandler(function (err) {
+          $('runBtn').disabled = false;
+          $('writeBtn').disabled = !lastResult || (lastResult.limits && !lastResult.limits.allowed);
+          showError(err && err.message ? err.message : String(err));
+        })
+        .runMerge(payload);
+    }
+
+    function initFromState(state) {
+      renderSheets(state.sheets || []);
+      renderLicense(state.license, state);
+      if (state.showSampleBanner) setHidden($('sampleBanner'), false);
+    }
+
+    $('runBtn').addEventListener('click', function () { runCheck(false); });
+    $('writeBtn').addEventListener('click', function () { runCheck(true); });
+    $('saveKeyBtn').addEventListener('click', function () {
+      showError('');
+      if (MOCK) {
+        $('licenseNote').textContent = 'License saving is disabled in the local mockup. This is a prototype stub only.';
+        return;
+      }
+      google.script.run
+        .withSuccessHandler(function (license) {
+          renderLicense(license, {});
+        })
+        .withFailureHandler(function (err) {
+          showError(err && err.message ? err.message : String(err));
+        })
+        .saveLicenseKey($('licenseKey').value);
+    });
+
+    if (MOCK) {
+      initFromState(MOCK.state);
+      if (MOCK.result) renderResults(MOCK.result, { disableWrite: true });
+    } else {
+      google.script.run
+        .withSuccessHandler(initFromState)
+        .withFailureHandler(function (err) {
+          $('sheetList').textContent = '';
+          showError(err && err.message ? err.message : String(err));
+        })
+        .getSidebarState();
+    }
+  </script>
+</body>
+</html>
