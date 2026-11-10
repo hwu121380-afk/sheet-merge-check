@@ -1,0 +1,62 @@
+:root {
+  --ink: #1a2332;
+  --muted: #5c6b7f;
+  --line: #d8dee8;
+  --bg: #f7f8fa;
+  --card: #ffffff;
+  --accent: #1f4e8c;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.55 "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+header, main, footer {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+header {
+  padding-top: 28px;
+  padding-bottom: 8px;
+}
+header a.home {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 650;
+}
+nav {
+  margin: 8px 0 0;
+  font-size: 14px;
+}
+nav a {
+  color: var(--accent);
+  margin-right: 16px;
+}
+main {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 24px 28px 32px;
+  margin: 16px auto 24px;
+}
+h1 { font-size: 28px; line-height: 1.25; margin: 0 0 8px; }
+h2 { font-size: 18px; margin: 24px 0 8px; }
+p, li { color: var(--ink); }
+.lede, .meta, footer {
+  color: var(--muted);
+  font-size: 14px;
+}
+.meta { margin: 0 0 20px; }
+footer { padding-bottom: 32px; }
+ul { padding-left: 20px; }
+code {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.92em;
+  background: #eef2f7;
+  padding: 1px 4px;
+  border-radius: 4px;
+}
